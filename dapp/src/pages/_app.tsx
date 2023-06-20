@@ -2,11 +2,11 @@ import { getDefaultWallets, RainbowKitProvider } from "@rainbow-me/rainbowkit";
 import type { AppProps } from "next/app";
 import { useEffect, useState } from "react";
 import { configureChains, createConfig, WagmiConfig } from "wagmi";
-import { mainnet, sepolia } from "wagmi/chains";
+import { mainnet, sepolia, hardhat } from "wagmi/chains";
 import { alchemyProvider } from "wagmi/providers/alchemy";
 import { publicProvider } from "wagmi/providers/public";
 
-import "../styles/globals.css";
+import "../styles/globals.scss";
 import "@rainbow-me/rainbowkit/styles.css";
 
 const projectId = process.env.NEXT_PUBLIC_PROJECT_ID;
@@ -14,7 +14,9 @@ const projectId = process.env.NEXT_PUBLIC_PROJECT_ID;
 const { chains, publicClient, webSocketPublicClient } = configureChains(
   [
     mainnet,
-    ...(process.env.NEXT_PUBLIC_ENABLE_TESTNETS === "true" ? [sepolia] : []),
+    ...(process.env.NEXT_PUBLIC_ENABLE_TESTNETS === "true"
+      ? [sepolia, hardhat]
+      : []),
   ],
   [alchemyProvider({ apiKey: process.env.ALCHEMY_API }), publicProvider()]
 );
