@@ -1,25 +1,27 @@
-import "../../styles/globals.css";
-import "@rainbow-me/rainbowkit/styles.css";
 import { getDefaultWallets, RainbowKitProvider } from "@rainbow-me/rainbowkit";
 import type { AppProps } from "next/app";
+import { useEffect, useState } from "react";
 import { configureChains, createConfig, WagmiConfig } from "wagmi";
-import { sepolia } from "wagmi/chains";
+import { mainnet, sepolia } from "wagmi/chains";
+import { alchemyProvider } from "wagmi/providers/alchemy";
 import { publicProvider } from "wagmi/providers/public";
 
-if (!process.env.NEXT_PUBLIC_PROJECT_ID) {
-  throw new Error("You need to provide NEXT_PUBLIC_PROJECT_ID");
-}
+import "../styles/globals.css";
+import "@rainbow-me/rainbowkit/styles.css";
 
 const projectId = process.env.NEXT_PUBLIC_PROJECT_ID;
 
 const { chains, publicClient, webSocketPublicClient } = configureChains(
-  [...(process.env.NEXT_PUBLIC_ENABLE_TESTNETS === "true" ? [sepolia] : [])],
-  [publicProvider()]
+  [
+    mainnet,
+    ...(process.env.NEXT_PUBLIC_ENABLE_TESTNETS === "true" ? [sepolia] : []),
+  ],
+  [alchemyProvider({ apiKey: process.env.ALCHEMY_API }), publicProvider()]
 );
 
 const { connectors } = getDefaultWallets({
-  appName: "RainbowKit App",
-  projectId: projectId,
+  appName: "Tribe dApp",
+  projectId: "41d7861201cc2f2970bc2bc808a03890",
   chains,
 });
 
@@ -30,14 +32,24 @@ const wagmiConfig = createConfig({
   webSocketPublicClient,
 });
 
-function MyApp({ Component, pageProps }: AppProps) {
+function App({ Component, pageProps }: AppProps) {
+  const [ready, setReady] = useState(false);
+
+  useEffect(() => {
+    setReady(true);
+  }, []);
+
   return (
-    <WagmiConfig config={wagmiConfig}>
-      <RainbowKitProvider chains={chains}>
-        <Component {...pageProps} />
-      </RainbowKitProvider>
-    </WagmiConfig>
+    <>
+      {ready ? (
+        <WagmiConfig config={wagmiConfig}>
+          <RainbowKitProvider chains={chains}>
+            <Component {...pageProps} />
+          </RainbowKitProvider>
+        </WagmiConfig>
+      ) : null}
+    </>
   );
 }
 
-export default MyApp;
+export default App;
