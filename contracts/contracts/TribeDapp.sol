@@ -3,10 +3,10 @@ pragma solidity ^0.8.19;
 
 import "@openzeppelin/contracts/token/ERC1155/ERC1155.sol";
 import "@openzeppelin/contracts/access/Ownable.sol";
-import "./ITribedApp.sol";
-import "./ITribedAppErrors.sol";
+import "./ITribeDapp.sol";
+import "./ITribeDappErrors.sol";
 
-contract TribeDapp is Ownable, ERC1155, ITribeDapp, ITribedAppErrors {
+contract TribeDapp is Ownable, ERC1155, ITribeDapp, ITribeDappErrors {
 
     struct Tribe {
 	address owner;
@@ -22,13 +22,13 @@ contract TribeDapp is Ownable, ERC1155, ITribeDapp, ITribedAppErrors {
     uint256 private _priceNewTribe;
     uint256 private _maxId;
 
-    constructor (uint256 priceNewTribe) ERC1155() {
+    constructor (uint256 priceNewTribe) ERC1155("") {
 	_priceNewTribe = priceNewTribe;
 	_maxId = 0;
     }
 
     modifier tribeExists(uint256 id) {
-	require(_tribes[id] != 0);
+	require(!_isTribeEmpty(id));
 	_;
     }
 
@@ -37,16 +37,20 @@ contract TribeDapp is Ownable, ERC1155, ITribeDapp, ITribedAppErrors {
 	_;
     }
 
-    function tribes() public view {
-	return _tribes;
+    function getTribe(uint256 id) public view returns(Tribe memory) {
+	return _tribes[id];
     }
 
     function setPriceNewTribe(uint256 priceNewTribe) public onlyOwner {
 	_priceNewTribe = priceNewTribe;
     }
 
-    function priceNewTribe() public view {
+    function getPriceNewTribe() public view returns(uint256) {
 	return _priceNewTribe;
+    }
+
+    function _isTribeEmpty(uint256 id) internal view returns(bool) {
+	return _tribes[id].owner == address(0);
     }
 
     function createTribe(uint256 priceToJoin, uint256 maxCapacity, string memory uri) public payable {
@@ -62,25 +66,24 @@ contract TribeDapp is Ownable, ERC1155, ITribeDapp, ITribedAppErrors {
     }
 
     function deleteTribe(uint256 id) public tribeExists(id) onlyTribeOwner(id) {
-	_tribe[id] = 0;
-
+	_tribes[id] = Tribe(address(0), 0, 0, 0, "");
 	emit EditTribe(id);
     }
 
     function setOwnershipToTribe(uint256 id, address newOwner) public tribeExists(id) onlyTribeOwner(id) {
-	_tribe[id].owner = newOwner;
+	_tribes[id].owner = newOwner;
 
 	emit EditTribe(id);
     }
 
     function setPriceToJoinToTribe(uint256 id, uint256 newPriceToJoin) public tribeExists(id) onlyTribeOwner(id) {
-	_tribe[id].priceToJoin = newPriceToJoin;
+	_tribes[id].priceToJoin = newPriceToJoin;
 
 	emit EditTribe(id);
     }
 
     function setMaxCapacityToTribe(uint256 id, uint256 newMaxCapacity) public tribeExists(id) onlyTribeOwner(id) {
-	Tribe memory tribe = _tribe[id];
+	Tribe memory tribe = _tribes[id];
 	if (tribe.capacity > newMaxCapacity) {
 	    revert TribedAppMaxCapacitySmall(tribe.capacity, newMaxCapacity); 
 	}
@@ -90,7 +93,7 @@ contract TribeDapp is Ownable, ERC1155, ITribeDapp, ITribedAppErrors {
     }
 
     function setUriToTribe(uint256 id, string memory uri) public tribeExists(id) onlyTribeOwner(id) {
-	_tribe[id].uri = uri;
+	_tribes[id].uri = uri;
 
 	emit EditTribe(id);
     }

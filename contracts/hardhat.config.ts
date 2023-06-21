@@ -4,7 +4,7 @@ import "@nomicfoundation/hardhat-toolbox";
 require("./tasks/faucet");
 
 const config: HardhatUserConfig = {
-  solidity: "0.8.18",
+  solidity: "0.8.19",
 };
 
 export default config;
