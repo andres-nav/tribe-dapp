@@ -22,6 +22,7 @@ import "@rainbow-me/rainbowkit/styles.css";
 
 const projectId = process.env.NEXT_PUBLIC_PROJECT_ID;
 const appName = process.env.NEXT_PUBLIC_APP_NAME;
+const apiKey = process.env.NEXT_PUBLIC_ALCHEMY_KEY;
 
 const { chains, publicClient, webSocketPublicClient } = configureChains(
   [
@@ -30,7 +31,7 @@ const { chains, publicClient, webSocketPublicClient } = configureChains(
       ? [sepolia, hardhat]
       : []),
   ],
-  [alchemyProvider({ apiKey: process.env.ALCHEMY_API }), publicProvider()]
+  [alchemyProvider({ apiKey }), publicProvider()]
 );
 
 const connectors = connectorsForWallets([
