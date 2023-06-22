@@ -37,10 +37,6 @@ contract TribeDapp is Ownable, ERC1155, ITribeDapp, ITribeDappErrors {
 	_;
     }
 
-    function getTribe(uint256 id) public view returns(Tribe memory) {
-	return _tribes[id];
-    }
-
     function setPriceNewTribe(uint256 priceNewTribe) public onlyOwner {
 	_priceNewTribe = priceNewTribe;
     }
@@ -49,13 +45,17 @@ contract TribeDapp is Ownable, ERC1155, ITribeDapp, ITribeDappErrors {
 	return _priceNewTribe;
     }
 
+    function getMaxId() public view returns(uint256) {
+	return _maxId;
+    }
+
     function _isTribeEmpty(uint256 id) internal view returns(bool) {
 	return _tribes[id].owner == address(0);
     }
 
-    function createTribe(uint256 priceToJoin, uint256 maxCapacity, string memory uri) public payable {
+    function createTribe(uint256 priceToJoin, uint256 maxCapacity, string memory uri) public payable returns(uint256) {
 	if (msg.value != _priceNewTribe) {
-	    revert TribedAppWrongPayment(msg.value, _priceNewTribe);
+	    revert TribeDappWrongPayment(msg.value, _priceNewTribe);
 	}
 
 	_maxId++;
@@ -63,11 +63,22 @@ contract TribeDapp is Ownable, ERC1155, ITribeDapp, ITribeDappErrors {
 	_tribes[_maxId] = Tribe(msg.sender, priceToJoin, maxCapacity, 0, uri); 
 
 	emit EditTribe(_maxId);
+
+	return _maxId;
     }
 
     function deleteTribe(uint256 id) public tribeExists(id) onlyTribeOwner(id) {
 	_tribes[id] = Tribe(address(0), 0, 0, 0, "");
 	emit EditTribe(id);
+    }
+
+    function getTribe(uint256 id) public view tribeExists(id) returns(address owner, uint256 priceToJoin, uint256 maxCapacity, uint256 capacity, string memory uri) {
+	Tribe memory tribe = _tribes[id];
+	owner = tribe.owner;
+	priceToJoin = tribe.priceToJoin;
+	maxCapacity = tribe.maxCapacity;
+	capacity = tribe.capacity;
+	uri = tribe.uri;
     }
 
     function setOwnershipToTribe(uint256 id, address newOwner) public tribeExists(id) onlyTribeOwner(id) {
@@ -85,7 +96,7 @@ contract TribeDapp is Ownable, ERC1155, ITribeDapp, ITribeDappErrors {
     function setMaxCapacityToTribe(uint256 id, uint256 newMaxCapacity) public tribeExists(id) onlyTribeOwner(id) {
 	Tribe memory tribe = _tribes[id];
 	if (tribe.capacity > newMaxCapacity) {
-	    revert TribedAppMaxCapacitySmall(tribe.capacity, newMaxCapacity); 
+	    revert TribeDappMaxCapacitySmall(tribe.capacity, newMaxCapacity); 
 	}
 
 	tribe.maxCapacity = newMaxCapacity;
@@ -99,10 +110,24 @@ contract TribeDapp is Ownable, ERC1155, ITribeDapp, ITribeDappErrors {
     }
 
     function mint(uint256 id) public payable tribeExists(id) {
-		
+	Tribe memory tribe = _tribes[id];
+	if (tribe.capacity >= tribe.maxCapacity) {
+	    revert TribeDappTribeFull();
+	}
+
+	if (msg.value != tribe.priceToJoin) {
+	    revert TribeDappWrongPayment(msg.value, tribe.priceToJoin);
+	}
+
+	//check if it already has one
+
+	_mint(msg.sender, id, 1, "");
+	tribe.capacity++;
     }
 
-    function burn(uint256 id) tribeExists(id) public {
+    //limit to only one
+
+    function burn(uint256 id) public tribeExists(id) {
 	
     }
 

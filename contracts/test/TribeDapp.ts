@@ -19,6 +19,33 @@ describe("TribeDapp", function () {
     return { tribeDapp, priceNewTribe, owner, otherAccount };
   }
 
+  async function createTribe() {
+    const { tribeDapp, priceNewTribe, owner, otherAccount } = await loadFixture(
+      deployContract
+    );
+
+    const priceToJoin = ethers.parseEther("1");
+    const maxCapacity = 10;
+    const uri = "www.google.com";
+
+    await tribeDapp
+      .connect(otherAccount)
+      .createTribe(priceToJoin, maxCapacity, uri, {
+        value: priceNewTribe,
+      });
+
+    const id = await tribeDapp.connect(otherAccount).getMaxId();
+
+    return {
+      tribeDapp,
+      id,
+      priceToJoin,
+      maxCapacity,
+      uri,
+      owner,
+      otherAccount,
+    };
+  }
   describe("Deployment", function () {
     it("Should set the right priceNewTribe", async function () {
       const { tribeDapp, priceNewTribe } = await loadFixture(deployContract);
@@ -31,71 +58,113 @@ describe("TribeDapp", function () {
 
       expect(await tribeDapp.owner()).to.equal(owner.address);
     });
+
+    it("Cannot edit a non owner the priceNewTribe", async function () {
+      const { tribeDapp, otherAccount } = await loadFixture(deployContract);
+      const newPriceNewTribe = ethers.parseEther("0.1");
+
+      await expect(
+        tribeDapp.connect(otherAccount).setPriceNewTribe(newPriceNewTribe)
+      ).to.be.revertedWith("Ownable: caller is not the owner");
+    });
+
+    it("Owner can update the priceNewTribe", async function () {
+      const { tribeDapp, owner } = await loadFixture(deployContract);
+
+      const newPriceNewTribe = ethers.parseEther("0.1");
+
+      await tribeDapp.connect(owner).setPriceNewTribe(newPriceNewTribe);
+
+      expect(await tribeDapp.connect(owner).getPriceNewTribe()).to.equal(
+        newPriceNewTribe
+      );
+    });
   });
 
-  describe("Withdrawals", function () {
-    describe("Validations", function () {
-      it("Should revert with the right error if called too soon", async function () {
-        const { lock } = await loadFixture(deployOneYearLockFixture);
+  describe("Tribe Setup", function () {
+    it("Should fail to create a new Tribe (wrong payment)", async function () {
+      const { tribeDapp, priceNewTribe, otherAccount } = await loadFixture(
+        deployContract
+      );
+      const priceToJoin = ethers.parseEther("1");
+      const maxCapacity = 10;
+      const uri = "www.google.com";
 
-        await expect(lock.withdraw()).to.be.revertedWith(
-          "You can't withdraw yet"
-        );
-      });
-
-      it("Should revert with the right error if called from another account", async function () {
-        const { lock, unlockTime, otherAccount } = await loadFixture(
-          deployOneYearLockFixture
-        );
-
-        // We can increase the time in Hardhat Network
-        await time.increaseTo(unlockTime);
-
-        // We use lock.connect() to send a transaction from another account
-        await expect(lock.connect(otherAccount).withdraw()).to.be.revertedWith(
-          "You aren't the owner"
-        );
-      });
-
-      it("Shouldn't fail if the unlockTime has arrived and the owner calls it", async function () {
-        const { lock, unlockTime } = await loadFixture(
-          deployOneYearLockFixture
-        );
-
-        // Transactions are sent using the first signer by default
-        await time.increaseTo(unlockTime);
-
-        await expect(lock.withdraw()).not.to.be.reverted;
-      });
+      await expect(
+        tribeDapp
+          .connect(otherAccount)
+          .createTribe(priceToJoin, maxCapacity, uri)
+      ).to.be.revertedWithCustomError(tribeDapp, "TribeDappWrongPayment");
     });
 
-    describe("Events", function () {
-      it("Should emit an event on withdrawals", async function () {
-        const { lock, unlockTime, lockedAmount } = await loadFixture(
-          deployOneYearLockFixture
-        );
+    it("Should be empty tribe", async function () {
+      const { tribeDapp, otherAccount } = await loadFixture(deployContract);
 
-        await time.increaseTo(unlockTime);
-
-        await expect(lock.withdraw())
-          .to.emit(lock, "Withdrawal")
-          .withArgs(lockedAmount, anyValue); // We accept any value as `when` arg
-      });
+      await expect(tribeDapp.connect(otherAccount).getTribe(10)).to.be.reverted;
     });
 
-    describe("Transfers", function () {
-      it("Should transfer the funds to the owner", async function () {
-        const { lock, unlockTime, lockedAmount, owner } = await loadFixture(
-          deployOneYearLockFixture
-        );
+    it("Should create a new tribe correctly", async function () {
+      const {
+        tribeDapp,
+        id,
+        priceToJoin,
+        maxCapacity,
+        capacity,
+        uri,
+        otherAccount,
+      } = await loadFixture(createTribe);
 
-        await time.increaseTo(unlockTime);
+      const returnedValues = await tribeDapp.connect(otherAccount).getTribe(id);
 
-        await expect(lock.withdraw()).to.changeEtherBalances(
-          [owner, lock],
-          [lockedAmount, -lockedAmount]
-        );
-      });
+      expect(returnedValues[0]).to.equal(otherAccount.address);
+      expect(returnedValues[1]).to.equal(priceToJoin);
+      expect(returnedValues[2]).to.equal(maxCapacity);
+      expect(returnedValues[3]).to.equal(0);
+      expect(returnedValues[4]).to.equal(uri);
+    });
+
+    it("Should not be able to delete a tribe anyone", async function () {
+      const {
+        tribeDapp,
+        id,
+        priceToJoin,
+        maxCapacity,
+        capacity,
+        uri,
+        owner,
+        otherAccount,
+      } = await loadFixture(createTribe);
+
+      await expect(tribeDapp.connect(owner).deleteTribe(id)).to.be.reverted;
+    });
+
+    it("Should delete and create new tribes", async function () {
+      const {
+        tribeDapp,
+        id,
+        priceToJoin,
+        maxCapacity,
+        capacity,
+        uri,
+        otherAccount,
+      } = await loadFixture(createTribe);
+
+      await tribeDapp.connect(otherAccount).deleteTribe(id);
+
+      await expect(tribeDapp.connect(otherAccount).getTribe(id)).to.be.reverted;
+
+      const priceNewTribe = await tribeDapp
+        .connect(otherAccount)
+        .getPriceNewTribe();
+
+      await tribeDapp
+        .connect(otherAccount)
+        .createTribe(priceToJoin, maxCapacity, uri, {
+          value: priceNewTribe,
+        });
+      const id2 = await tribeDapp.connect(otherAccount).getMaxId();
+
+      expect(Number(id)).not.to.equal(Number(id2));
     });
   });
 });
