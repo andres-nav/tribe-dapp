@@ -66,9 +66,15 @@ contract TribeDapp is Ownable, ERC1155, ITribeDapp, ITribeDappErrors {
 	_;
     }
 
-    constructor (uint256 priceNewTribe) ERC1155("") {
-	_priceNewTribe = priceNewTribe;
+    /* ----------------------------------------------------- */
+    /*                    DEPLOYMENT */
+    /* ----------------------------------------------------- */
+
+    constructor (uint256 priceNewTribe, uint8 feeIn100) ERC1155("") {
 	_maxId = 0;
+	setPriceNewTribe(priceNewTribe);
+	setFeeIn100(feeIn100);
+	_balanceContract = address(this).balance;
     }
 
     function getMaxId() public view returns(uint256) {
@@ -82,6 +88,27 @@ contract TribeDapp is Ownable, ERC1155, ITribeDapp, ITribeDappErrors {
     function setPriceNewTribe(uint256 priceNewTribe) public onlyOwner {
 	_priceNewTribe = priceNewTribe;
     }
+
+
+    function getFeeIn100() public view returns(uint256) {
+	return _feeIn100;
+    }
+
+    function setFeeIn100(uint8 fee) public onlyOwner {
+	if (fee > 100) {
+	    revert WrongFee(fee);
+	}
+
+	_feeIn100 = fee;
+    }
+
+    function getBalanceContract() public view onlyOwner returns(uint256) {
+	return _balanceContract;
+    }
+
+    /* ----------------------------------------------------- */
+    /*                    SETUP */
+    /* ----------------------------------------------------- */
 
     function _isTribeEmpty(uint256 id) internal view returns(bool) {
 	return _tribes[id].owner == address(0);
@@ -114,10 +141,11 @@ contract TribeDapp is Ownable, ERC1155, ITribeDapp, ITribeDappErrors {
     }
 
     function deleteTribe(uint256 id) public tribeExists(id) onlyTribeOwner(id) {
+	withdrawTribe(id);
+
 	_tribes[id] = Tribe(address(0), 0, 0, 0, "", 0);
 	emit EditTribe(id);
     }
-
 
     function setOwnershipToTribe(uint256 id, address newOwner) public tribeExists(id) onlyTribeOwner(id) {
 	_tribes[id].owner = newOwner;
@@ -125,27 +153,25 @@ contract TribeDapp is Ownable, ERC1155, ITribeDapp, ITribeDappErrors {
 	emit EditTribe(id);
     }
 
-    function setPriceToJoinToTribe(uint256 id, uint256 newPriceToJoin) public tribeExists(id) onlyTribeOwner(id) {
-	_tribes[id].priceToJoin = newPriceToJoin;
-
-	emit EditTribe(id);
-    }
-
-    function setMaxCapacityToTribe(uint256 id, uint256 newMaxCapacity) public tribeExists(id) onlyTribeOwner(id) {
+    function updateTribe(uint256 id, uint256 newPriceToJoin, uint256 newMaxCapacity, string memory newUri) public tribeExists(id) onlyTribeOwner(id) {
 	Tribe storage tribe = _tribes[id];
+
+	tribe.priceToJoin = newPriceToJoin;
+
 	if (tribe.capacity > newMaxCapacity) {
 	    revert MaxCapacitySmall(tribe.capacity, newMaxCapacity); 
 	}
 
 	tribe.maxCapacity = newMaxCapacity;
-	emit EditTribe(id);
-    }
 
-    function setUriToTribe(uint256 id, string memory uri) public tribeExists(id) onlyTribeOwner(id) {
-	_tribes[id].uri = uri;
+	tribe.uri = newUri;
 
 	emit EditTribe(id);
     }
+
+    /* ----------------------------------------------------- */
+    /*                    ERC1155 Funcitons */
+    /* ----------------------------------------------------- */
 
     function balanceOf(address account, uint256 id) public view override (ERC1155, IERC1155) tribeExists(id) returns (uint256) {
 	return super.balanceOf(account, id);
@@ -172,6 +198,10 @@ contract TribeDapp is Ownable, ERC1155, ITribeDapp, ITribeDappErrors {
         super.safeBatchTransferFrom(from, to, ids, amounts, data);
     }
 
+    /* ----------------------------------------------------- */
+    /*                    FUNCTIONALITY */
+    /* ----------------------------------------------------- */
+
     function mint(uint256 id) public payable tribeExists(id) notInTribe(msg.sender, id) {
 	Tribe storage tribe = _tribes[id];
 	if (tribe.capacity >= tribe.maxCapacity) {
@@ -191,32 +221,26 @@ contract TribeDapp is Ownable, ERC1155, ITribeDapp, ITribeDappErrors {
     }
 
     function burn(uint256 id) public tribeExists(id) {
-	_burn(msg.sender, id, 1, "");
+	_burn(msg.sender, id, 1);
 	_tribes[id].capacity--;
     }
 
-    function getFeeIn100() public view returns(uint256) {
-	return _feeIn100;
-    }
-
-    function setFeeIn100(uint8 fee) public onlyOwner returns(uint256) {
-	if (fee > 100) {
-	    revert WrongFee(fee);
-	}
-
-	_feeIn100 = fee;
-    }
-
-    function getBalanceContract() public view onlyOwner returns(uint256) {
-	return _balanceContract;
-    }
+    /* ----------------------------------------------------- */
+    /*                    WITHDRAW */
+    /* ----------------------------------------------------- */
 
     function withdraw() public onlyOwner {
-	msg.sender.transfer(_balanceContract);
+	uint256 toSend = _balanceContract;
+	_balanceContract = 0;
+
+	payable(msg.sender).transfer(toSend);
     }
 
     function withdrawTribe(uint256 id) public tribeExists(id) onlyTribeOwner(id) {
 	Tribe storage tribe = _tribes[id];
-	tribe.owner.transfer(tribe.balanceTribe);
+	uint256 toSend = tribe.balanceTribe;
+	tribe.balanceTribe = 0;
+
+	payable(tribe.owner).transfer(toSend);
     }
 }

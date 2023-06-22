@@ -2,8 +2,12 @@ import { ethers } from "hardhat";
 
 async function main() {
   const priceNewTribe = ethers.parseEther("0.01");
+  const feeIn100 = 10;
 
-  const tribeDapp = await ethers.deployContract("TribeDapp", [priceNewTribe]);
+  const tribeDapp = await ethers.deployContract("TribeDapp", [
+    priceNewTribe,
+    feeIn100,
+  ]);
 
   await tribeDapp.waitForDeployment();
 
