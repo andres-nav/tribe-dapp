@@ -3,10 +3,12 @@ import Modal from "react-bootstrap/Modal";
 import Form from "react-bootstrap/Form";
 import InputGroup from "react-bootstrap/InputGroup";
 
+import { storeTribeInfo } from "../../scripts/nft-storage";
+
 export default function ModalCreateTribe(props) {
   const createTribe = (e) => {
     e.preventDefault();
-    console.log("submit");
+    const metadata = storeTribeInfo("test", "description", 1, 10, "google.com");
   };
 
   return (
