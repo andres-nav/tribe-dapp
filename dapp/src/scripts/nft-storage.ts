@@ -1,28 +1,19 @@
+import mime from "mime/lite";
 import { NFTStorage } from "nft.storage";
 
 const API_KEY = process.env.NEXT_PUBLIC_NFT_STORAGE_KEY;
 
-export async function storeTribeInfo(
-  name,
-  description,
-  priceToJoin,
-  maxCapacity,
-  link
-) {
+export async function storeTribeInfo(image, name, description, link) {
   const client = new NFTStorage({ token: API_KEY });
-  const image = new Blob([], {
-    type: "image/png",
-  });
+
   const tribe = {
-    image,
+    image: image,
     name: name,
     description: description,
-    priceToJoin: priceToJoin,
-    maxCapacity: maxCapacity,
     link: link,
   };
 
-  const metadata = await client.store(tribe);
-  console.log(metadata);
+  // const metadata = await client.store(tribe);
+  const metadata = 0;
   return metadata;
 }

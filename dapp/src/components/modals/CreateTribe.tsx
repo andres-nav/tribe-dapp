@@ -3,12 +3,27 @@ import Modal from "react-bootstrap/Modal";
 import Form from "react-bootstrap/Form";
 import InputGroup from "react-bootstrap/InputGroup";
 
+import mime from "mime/lite";
 import { storeTribeInfo } from "../../scripts/nft-storage";
 
 export default function ModalCreateTribe(props) {
   const createTribe = (e) => {
     e.preventDefault();
-    const metadata = storeTribeInfo("test", "description", 1, 10, "google.com");
+    const form = e.currentTarget;
+
+    const name = form.name.value;
+    const description = form.description.value;
+    const priceToJoin = form.priceToJoin.value;
+    const maxCapacity = ~~form.maxCapacity.value;
+    const link = form.link.value;
+    const image = form.image.files[0];
+
+    if (priceToJoin < 0 || maxCapacity < 0 || !image.type.includes("image/")) {
+      return;
+    }
+
+    const metadata = storeTribeInfo(image, name, description, link);
+    props.onHide();
   };
 
   return (
@@ -22,10 +37,20 @@ export default function ModalCreateTribe(props) {
           <InputGroup className="mb-3">
             <InputGroup.Text id="basic-addon1">Name</InputGroup.Text>
             <Form.Control
+              name="name"
               required
               type="text"
-              placeholder="My awesome tribe!"
-              aria-label="My awesome tribe!"
+              aria-describedby="basic-addon1"
+            />
+          </InputGroup>
+
+          <InputGroup className="mb-3">
+            <InputGroup.Text id="basic-addon1">Description</InputGroup.Text>
+            <Form.Control
+              name="description"
+              required
+              as="textarea"
+              rows={2}
               aria-describedby="basic-addon1"
             />
           </InputGroup>
@@ -33,12 +58,11 @@ export default function ModalCreateTribe(props) {
             {}{" "}
             <InputGroup.Text id="basic-addon1">Price to join</InputGroup.Text>
             <Form.Control
+              name="priceToJoin"
               required
               type="number"
               min="0"
               step="0.00000000001"
-              placeholder="0.01"
-              aria-label="0.01"
               aria-describedby="basic-addon1"
             />
             <InputGroup.Text id="basic-addon1">ETH</InputGroup.Text>
@@ -46,21 +70,29 @@ export default function ModalCreateTribe(props) {
           <InputGroup className="mb-3">
             <InputGroup.Text id="basic-addon1">Max capacity</InputGroup.Text>
             <Form.Control
+              name="maxCapacity"
               required
               type="number"
               min="0"
-              placeholder="100"
-              aria-label="100"
               aria-describedby="basic-addon1"
             />
           </InputGroup>
           <InputGroup className="mb-3">
             <InputGroup.Text id="basic-addon1">Link</InputGroup.Text>
             <Form.Control
+              name="link"
               required
               type="text"
-              placeholder="www.myawesometribe.com"
-              aria-label="www.myawesometribe.com"
+              aria-describedby="basic-addon1"
+            />
+          </InputGroup>
+
+          <InputGroup className="mb-3">
+            <Form.Control
+              name="image"
+              required
+              type="file"
+              accept="image/*"
               aria-describedby="basic-addon1"
             />
           </InputGroup>
