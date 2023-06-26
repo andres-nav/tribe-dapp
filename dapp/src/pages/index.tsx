@@ -1,14 +1,18 @@
 import { useState } from "react";
+import { Stack, Button } from "react-bootstrap";
+
 import { ConnectButton } from "@rainbow-me/rainbowkit";
-import { Button } from "react-bootstrap";
 import type { NextPage } from "next";
 import Head from "next/head";
 import styles from "../styles/Home.module.scss";
+
+import { useAccount } from "wagmi";
 
 import ModalCreateTribe from "../components/modals/CreateTribe";
 
 const Home: NextPage = () => {
   const [modalShow, setModalShow] = useState(false);
+  const { address, isConnecting, isDisconnected } = useAccount();
 
   return (
     <>
@@ -24,7 +28,15 @@ const Home: NextPage = () => {
         </div>
         <main className={styles.main}>
           <h1> main</h1>
-          <Button onClick={() => setModalShow(true)}>create Tribe</Button>
+          <Stack direction="horizontal" gap={3} className="mx-auto">
+            <Button
+              disabled={isDisconnected}
+              onClick={() => setModalShow(true)}
+            >
+              Create tribe
+            </Button>
+            <Button disabled={isDisconnected}>Join Tribe</Button>
+          </Stack>
         </main>
       </div>
       <ModalCreateTribe show={modalShow} onHide={() => setModalShow(false)} />
