@@ -6,14 +6,41 @@ import InputGroup from "react-bootstrap/InputGroup";
 import mime from "mime/lite";
 import { storeTribeInfo } from "../../scripts/nft-storage";
 
+import { useContractRead, useContractWrite } from "wagmi";
+import { abiTribeDapp } from "../../scripts/abi-tribe-dapp";
+import { utils } from "ethers";
+
+const contractAddress = process.env.NEXT_PUBLIC_CONTRACT_ADDRESS;
+
 export default function ModalCreateTribe(props) {
+  const {
+    data: priceNewTribe,
+    isError: isErrorPriceNewTribe,
+    isLoading: isLoadingPriceNewTribe,
+  } = useContractRead({
+    address: contractAddress,
+    abi: abiTribeDapp,
+    functionName: "getPriceNewTribe",
+  });
+
+  const {
+    data: dataCreateTribe,
+    isLoading: isLoadingCreateTribe,
+    isSuccess: isSuccessCreateTribe,
+    write: writeCreateTribe,
+  } = useContractWrite({
+    address: contractAddress,
+    abi: abiTribeDapp,
+    functionName: "createTribe",
+  });
+
   const createTribe = (e) => {
     e.preventDefault();
     const form = e.currentTarget;
 
     const name = form.name.value;
     const description = form.description.value;
-    const priceToJoin = form.priceToJoin.value;
+    const priceToJoin = utils.parseEther(form.priceToJoin.value);
     const maxCapacity = ~~form.maxCapacity.value;
     const link = form.link.value;
     const image = form.image.files[0];
@@ -22,8 +49,13 @@ export default function ModalCreateTribe(props) {
       return;
     }
 
-    const metadata = storeTribeInfo(image, name, description, link);
-    props.onHide();
+    writeCreateTribe({
+      args: [priceToJoin, maxCapacity, link],
+      value: priceNewTribe,
+    });
+    /* const metadata = storeTribeInfo(image, name, description, link); */
+
+    /* props.onHide(); */
   };
 
   return (
@@ -98,7 +130,8 @@ export default function ModalCreateTribe(props) {
           </InputGroup>
         </Modal.Body>
 
-        <Modal.Footer>
+        <Modal.Footer className="justify-content-between">
+          <strong>PRICE: {utils.formatEther(priceNewTribe)} ETH</strong>
           <Button variant="primary" type="submit">
             Submit
           </Button>
