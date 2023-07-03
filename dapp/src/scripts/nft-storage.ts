@@ -13,7 +13,10 @@ export async function storeTribeInfo(image, name, description, link) {
     link: link,
   };
 
-  // const metadata = await client.store(tribe);
-  const metadata = 0;
-  return metadata;
+  return await client.store(tribe);
+}
+
+export async function getTribeInfo(cid) {
+  const url = `https://ipfs.io/ipfs/${cid}`;
+  return await fetch(url);
 }

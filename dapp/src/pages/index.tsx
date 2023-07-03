@@ -9,9 +9,12 @@ import styles from "../styles/Home.module.scss";
 import { useAccount } from "wagmi";
 
 import ModalCreateTribe from "../components/modals/CreateTribe";
+import ModalJoinTribe from "../components/modals/JoinTribe";
 
 const Home: NextPage = () => {
-  const [modalShow, setModalShow] = useState(false);
+  const [modalCreateTribeShow, setModalCreateTribeShow] = useState(false);
+  const [modalJoinTribeShow, setModalJoinTribeShow] = useState(false);
+
   const { address, isConnecting, isDisconnected } = useAccount();
 
   return (
@@ -31,15 +34,27 @@ const Home: NextPage = () => {
           <Stack direction="horizontal" gap={3} className="mx-auto">
             <Button
               disabled={isDisconnected}
-              onClick={() => setModalShow(true)}
+              onClick={() => setModalCreateTribeShow(true)}
             >
               Create tribe
             </Button>
-            <Button disabled={isDisconnected}>Join Tribe</Button>
+            <Button
+              disabled={isDisconnected}
+              onClick={() => setModalJoinTribeShow(true)}
+            >
+              Join Tribe
+            </Button>
           </Stack>
         </main>
       </div>
-      <ModalCreateTribe show={modalShow} onHide={() => setModalShow(false)} />
+      <ModalCreateTribe
+        show={modalCreateTribeShow}
+        onHide={() => setModalCreateTribeShow(false)}
+      />
+      <ModalJoinTribe
+        show={modalJoinTribeShow}
+        onHide={() => setModalJoinTribeShow(false)}
+      />
     </>
   );
 };

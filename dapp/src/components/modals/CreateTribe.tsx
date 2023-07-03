@@ -49,13 +49,16 @@ export default function ModalCreateTribe(props) {
       return;
     }
 
-    writeCreateTribe({
-      args: [priceToJoin, maxCapacity, link],
-      value: priceNewTribe,
-    });
-    /* const metadata = storeTribeInfo(image, name, description, link); */
+    storeTribeInfo(image, name, description, link).then(function (result) {
+      console.log(result);
 
-    /* props.onHide(); */
+      writeCreateTribe({
+        args: [priceToJoin, maxCapacity, result.ipnft],
+        value: priceNewTribe,
+      });
+
+      props.onHide();
+    });
   };
 
   return (
